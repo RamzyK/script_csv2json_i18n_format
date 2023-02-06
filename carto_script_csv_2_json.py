@@ -67,56 +67,34 @@ def build_dict_of_values_with_same_key_root():
 
 
 def recc_build_json_representation():
-    print(splited_keys)
     tail_fr = {
         "text": "toto",
         "accesibilty_description":""
     }
     keys_starting_with_the_same_parent = gather_keys_that_stat_with_the_same_first_parent()
     data = {}
-    print(f"Common keys by roots {keys_starting_with_the_same_parent}")
 
     sub_path_position_start = 1
     loop_count = 0
     for keys_list in keys_starting_with_the_same_parent:
         for key in keys_list:
-            # print("=================================================")
-            # print(f"Loop turn n°{loop_count}\n")
             key_subpath = key[sub_path_position_start : (len(key))] # Subpath from the root parent of the key
-            # cprint(f'Splitted key subpath: {key_subpath}')
             child_path_object = {}
             try:
                 child_path_object = data[key[0]]
             except KeyError as e:
                 child_path_object = {}
 
-
             if child_path_object:
-                # print(f"There is data for parent {key[0]}")
-                # Dictionnary is not empty so there is already an object value for the parent
                 if sub_path_position_start < len(key):
                     child_json = build_json_arbo(0, key_subpath, tail_fr)
-                    # print(f'Reccurssivly built object {testtt}')
                     child_json_root = [k for k in child_json][0] # Get the key of the child object already created 
-
-                    # print(f"JSON en construction ressemble à: {data}")
-                    # print(f"La clé actuelle est: {key}")
-                    # print(f'Splitted key subpath: {key_subpath}')
-                    # print(f"Arborescence à partir de la clé: {child_json}")
-
-                    # if child_json_root != key_subpath[0]:
-                    #     data[key[0]][child_json_root] = child_json[child_json_root]
-                    # else:
                     recc_position_child_json_correctly(key[0], child_json_root, child_json[child_json_root], data)
 
                     sub_path_position_start = sub_path_position_start + 1
             else:
-                # print(f"There is no data for parent {key[0]}")
-                # print(f'Working with subarray: {key_subpath}')
-                testtt = build_json_arbo(0, key_subpath, tail_fr)
-                # print(f'Reccurssivly built object {testtt}')
-                data[key[0]] = testtt
-            #print(f"Final json object: {data}")
+                child_json = build_json_arbo(0, key_subpath, tail_fr)
+                data[key[0]] = child_json
             loop_count = loop_count + 1
             sub_path_position_start = 1
 
@@ -139,65 +117,6 @@ def recc_position_child_json_correctly(initial_root, child_root, child, json_fil
         recc_position_child_json_correctly(new_initial_root, new_child_root, new_child, new_json)
     else:
         json_file[initial_root][child_root] = child
-
-        
-
-
-
-
-
-
-## Keys: List of keys that have the same ancestor
-## common_ancestor : Common path to different child objects
-## conflictual_built_obj: child that we are trying to add a subposition where a child already exists
-def recc_build_child_json(child, pos, keys):
-    print(f"trying to build arbo for child: {child}")
-    print(f"trying to build arbo for child with keys: {keys}")
-    print(f"current position is: {pos}")
-    print(f"current child is: {child}")
-    if pos < len(keys) - 1:
-        test = {}
-        childs = []
-        childs.append(child)
-        childs.append(recc_build_child_json(child[keys[pos][pos+1]], (pos + 1), keys))
-        return childs
-    else:
-        return {
-            keys[pos]: child[keys[pos]]
-        }
-
-def insert_child_at_right_positon(child_to_insert, depth_parent_name, data2):
-    # print(f"child_to_insert: {child_to_insert}")
-    # print(f"depth_parent_name: {depth_parent_name}")
-    print(f"data: {data2}")
-    parent_key = [k for k in data2][0]
-    print(f"PARENT KEY: {parent_key}")
-    if parent_key != depth_parent_name:
-        print(f'Child 2 insert: {child_to_insert}')
-        print(f'Depth parent namd {depth_parent_name}')
-        print(f'Data: {data2}')
-        tmp = data2[parent_key]
-        child_2_insert_root = [k for k in child_to_insert][0]
-        old_data_root = [k for k in tmp][0]
-        test = {}
-        test[parent_key] = {}
-        test[parent_key][old_data_root] = insert_child_at_right_positon(child_to_insert, old_data_root, tmp[old_data_root])
-        test[parent_key][child_2_insert_root] = insert_child_at_right_positon(child_to_insert, child_2_insert_root, child_to_insert[child_2_insert_root])
-        return test
-    else:
-        print(f'Child 2 insert: {child_to_insert}')
-        print(f'Depth parent namd {depth_parent_name}')
-        print(f'Data: {data2}')
-        tmp = data2[parent_key]
-        child_2_insert_root = [k for k in child_to_insert][0]
-        old_data_root = [k for k in tmp][0]
-        test = {}
-        test[parent_key] = {}
-        test[parent_key][old_data_root] = tmp[old_data_root]
-        test[parent_key][child_2_insert_root] = child_to_insert[child_2_insert_root]
-        print(f"Test: {test}")
-
-        return test
 
         
     
@@ -296,9 +215,6 @@ def build_json_objects_for_every_lang():
         fr_text_dict.append(build_json_arbo(0, key, fr_tail_object))
         en_text_dict.append(build_json_arbo(0, key, en_tail_object))
         es_text_dict.append(build_json_arbo(0, key, es_tail_object))
-    #print(f"{fr_tail_object}\n")
-    #print(f"{en_tail_object}\n")
-    #print(f"{es_tail_object}\n")
 
 def csv_to_json():
 
