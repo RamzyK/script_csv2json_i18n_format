@@ -1,24 +1,39 @@
 
+# Author : Ramzy KERMAD
+# Updated at : 07/02/2023
+# Version : 1.0
+# Description : Script to generate 3 JSON files from 1 CSV file with 4 rows
+#                (Key, TRAD_FR, TRAD_EN, TRAD_ES) 
+# Language : Python
+
 import csv
 import json
+import time
 
-# Final dictionnaries that will be tranformed in json
-fr_text_dict = []
-en_text_dict = []
-es_text_dict = []
+start_timer = time.perf_counter() # timer when started
 
-unsplited_keys = []
+COLUMN_SEPARATOR = ";"
+KEY_SEPARATOR = "."
+LANG_KEY = "language"
 
-static_text_fr_values = {}
-static_text_en_values = {}
-static_text_es_values = {}
+FR_TRAD_KEY = "fr"
+EN_TRAD_KEY = "en"
+ES_TRAD_KEY = "es"
 
-#keys_as_array = []
+program_finished_successfully = False
+
+
+## Array containing the keys splitted by their separator
 splited_keys = []
-common_values_by_key_roots = {}
+
+dict_key_translation = {}
+
+data_fr = {}
+data_en = {}
+data_es = {}
 
 # This function will recreate the initial key seperated by '.' to find the value associated in the right language
-# @param: splitted_key: Array of strings, which is created by spliting the initial key from the csv file
+# @param: splitted_key: [string]--> Array of strings, which is created by spliting the initial key from the csv file
 #    e.g: "a.b.c.d" -> ['a', 'b', 'c', 'd']
 def compose_key_from_splitted_key_array(splitted_key):
     formatted_key = ""
@@ -33,75 +48,54 @@ def compose_key_from_splitted_key_array(splitted_key):
 
 
 
-# This function will build a dictionnary to bing common key path to values
-## e.g :
-##  Key       FR     EN     ES
-## a.b.c.d = toto / tutu / titi
-## ----- =
-## a.b.c.e = toto / tutu / titi
-## ----- =
-## a.b.c.f = toto / tutu / titi
-## ----- =
-## a.b.cc  = toto / tutu / titi
-## --- ==
-## Result -> {('a', 'b', 'c'): ['d', 'e', 'f'], ('a', 'b'): ['cc']}
-## With this structur we are able to give the correct level indent in the final lang json structure
-def build_dict_of_values_with_same_key_root():
-    print(f'Common values dictionnary befor proceesing: {common_values_by_key_roots}')
-    for key in splited_keys:
-        pos = 0
-        key_root = []
-        values = []
-        while pos < len(key):
-            if pos == len(key) - 1:
-                values.append(key[pos])
-            else:
-                key_root.append(key[pos])
-            pos += 1
-        if tuple(key_root) in common_values_by_key_roots:
-            # Add the new values found corresponding to the key's root
-            common_values_by_key_roots[tuple(key_root)] = common_values_by_key_roots[tuple(key_root)] + values
-        else:
-            common_values_by_key_roots[tuple(key_root)] = values
-    print(f'Common values dictionnary after proceesing: {common_values_by_key_roots}')
-
-
-def recc_build_json_representation():
-    tail_fr = {
-        "text": "toto",
-        "accesibilty_description":""
-    }
+## Function called to build JSON representation of the CSV file
+## @params:
+## lang: string --> Language we want to build our JSON file in. the texts in the tail objects will change depending of that
+## final_json: {} --> Dictionnary in which we will put our structured data to build the json
+def recc_build_json_representation(lang, final_json):
     keys_starting_with_the_same_parent = gather_keys_that_stat_with_the_same_first_parent()
-    data = {}
 
     sub_path_position_start = 1
     loop_count = 0
     for keys_list in keys_starting_with_the_same_parent:
         for key in keys_list:
+            text = dict_key_translation[compose_key_from_splitted_key_array(tuple(key))][lang]
+            
+            tail = {
+                "text": text,
+                "accesibilty_description":""
+            }
             key_subpath = key[sub_path_position_start : (len(key))] # Subpath from the root parent of the key
             child_path_object = {}
             try:
-                child_path_object = data[key[0]]
+                child_path_object = final_json[key[0]]
             except KeyError as e:
                 child_path_object = {}
 
             if child_path_object:
                 if sub_path_position_start < len(key):
-                    child_json = build_json_arbo(0, key_subpath, tail_fr)
+                    child_json = build_json_child_arbo(0, key_subpath, tail)
                     child_json_root = [k for k in child_json][0] # Get the key of the child object already created 
-                    recc_position_child_json_correctly(key[0], child_json_root, child_json[child_json_root], data)
+                    insert_child_json_in_final_json(key[0], child_json_root, child_json[child_json_root], final_json)
 
                     sub_path_position_start = sub_path_position_start + 1
             else:
-                child_json = build_json_arbo(0, key_subpath, tail_fr)
-                data[key[0]] = child_json
+                if len(key) > 1: 
+                    child_json = build_json_child_arbo(0, key_subpath, tail)
+                    final_json[key[0]] = child_json
+                else:
+                    final_json[key[0]] = tail
             loop_count = loop_count + 1
             sub_path_position_start = 1
 
-    print(f'Final JSON: {data}')
 
-
-def recc_position_child_json_correctly(initial_root, child_root, child, json_file):
+## Function called to insert a child in the JSON tree recursivly
+## @params: 
+## inital_root: string --> The top first of the first splitted array, it will let us know where we are in the json file arbo
+## child_root: string --> Root of the json child we are trying to insert
+## child: {} --> JSON object we are trying to insert
+## json_file: {} --> Final JSON in which we are' trying to insert a new child
+def insert_child_json_in_final_json(initial_root, child_root, child, json_file):
     result = {}
 
     try: 
@@ -110,17 +104,22 @@ def recc_position_child_json_correctly(initial_root, child_root, child, json_fil
          json_file[initial_root][child_root] = child
 
     if result:
+        print(f"Result: {result}")
         new_json = json_file[initial_root]
         new_initial_root = child_root
         new_child_root = [k for k in child][0]
-        new_child = child[new_child_root]
-        recc_position_child_json_correctly(new_initial_root, new_child_root, new_child, new_json)
+        try:
+            new_child = child[new_child_root]
+            insert_child_json_in_final_json(new_initial_root, new_child_root, new_child, new_json)
+        except TypeError as e:
+            print("Cannot go deeper")
+
     else:
         json_file[initial_root][child_root] = child
 
         
     
-# Function called to put together keays that start with the same first indentation and
+# Function called to put together keys that start with the same first indentation and
 # returns it back as a list
 # e.g: 
 ## a.b gives the splitted array ['a', 'b']
@@ -141,11 +140,18 @@ def gather_keys_that_stat_with_the_same_first_parent():
             last_first_parent = first_parent
     return keys_starting_with_the_same_parent
 
-def build_json_arbo(position, keys, tail_object):
-    #print(f'Reccusrivity working with the list: {keys}')
+
+
+
+## Function called to build dictionnary based on list of keys and dependancies in the hierarchy
+## @params: 
+## position: Represents the position in the keys array to know at which level of depth in the dictionnary we are, it also the terimating check of the reccursive calls
+## keys: Array of splitted initial key
+## tail_object: Object inserted at the end for the last key
+def build_json_child_arbo(position, keys, tail_object):
     if position < len(keys) - 1:
         return {
-            keys[position]: build_json_arbo(position + 1, keys, tail_object)
+            keys[position]: build_json_child_arbo(position + 1, keys, tail_object)
         }
     else:
         tailObj_data = {}
@@ -153,113 +159,88 @@ def build_json_arbo(position, keys, tail_object):
         return  tailObj_data
    
 
-
+## Function called to structure the data we will handle. This function extract the info by column et put in in 
+## data structure to be processed and to easily interact with.
+## It will split the keys by their separator and associate a traduction text to a key
 def read_and_parse_csv_to_fill_data_structures():
-    with open(csv_source_file, "r") as csv_file_handler:
-        csv_reader = csv_file_handler.readlines()
+    try:
+        with open(csv_source_file, "r") as csv_file_handler:
+            csv_reader = csv_file_handler.readlines()
 
-        for row in csv_reader:
-            columns = row.split(";")
-            common_key = columns[0]
+            for row in csv_reader:
+                columns = row.split(COLUMN_SEPARATOR)
+                common_key = columns[0]
 
-            # Split keys to remove point and have array of object level
-            unsplited_keys.append(common_key)
-            splited_keys.append(common_key.split('.'))
-            static_text_fr_values[common_key] = columns[1]
-            static_text_en_values[common_key] = columns[2]
-            static_text_es_values[common_key] = columns[3]
-        
-        unsplited_keys.pop(0)
-        splited_keys.pop(0)
-        
-        #print(f'Unsplitted Keys: {unsplited_keys}')
-        #print(f'Splitted Keys: {keys_as_array}\n')
-        #print(f'FR values: {static_text_fr_values}\n')
-        #print(f'EN values: {static_text_en_values}\n')
-        #print(f'ES values: {static_text_es_values}\n')
+                splited_keys.append(common_key.split(KEY_SEPARATOR))
 
-        # Build dictionnary with splitted common key's roots as key and traduction that have the same root as values
-        #build_dict_of_values_with_same_key_root()
-        recc_build_json_representation()
-        if len(static_text_fr_values) == len(static_text_en_values) and  len(static_text_en_values) == len(static_text_es_values):
-            print(" Tous les dictionnaires sont avec autant de valeurs")
-        else:
-            print("Attention toutes les langues n'ont pas le même nombre de mots !")
+                dict_key_translation[common_key] = {}
+                dict_key_translation[common_key][FR_TRAD_KEY] = columns[1]
+                dict_key_translation[common_key][EN_TRAD_KEY] = columns[2]
+                dict_key_translation[common_key][ES_TRAD_KEY] = columns[3]
+            
+            splited_keys.pop(0)
+            splited_keys.sort()
+    except FileNotFoundError as e:
+        print("⚠️ Fichier introuvable verifier le chemin vers le fichier ⚠️\n")
+
  
+## Function called to create final json files for the correct lang
 def build_json_objects_for_every_lang():
-    for key in common_values_by_key_roots:
-        fr_tail_object = {}
-        en_tail_object = {}
-        es_tail_object = {}
-        for value in common_values_by_key_roots[key]:
-            formated_tuple = list(key)
-            formated_tuple.append(value)
-            formated_tuple = tuple(formated_tuple)
-        
-            tail_fr = {
-                "text": static_text_fr_values[compose_key_from_splitted_key_array(formated_tuple)],
-                "accesibilty_description":""
-            }
-            tail_en = {
-                "text": static_text_en_values[compose_key_from_splitted_key_array(formated_tuple)],
-                "accesibilty_description":""
-            }
-            tail_es = {
-                "text": static_text_es_values[compose_key_from_splitted_key_array(formated_tuple)],
-                "accesibilty_description":""
-            }
-            fr_tail_object[value] = tail_fr
-            en_tail_object[value] = tail_en
-            es_tail_object[value] = tail_es
+    recc_build_json_representation(FR_TRAD_KEY, data_fr)
+    recc_build_json_representation(EN_TRAD_KEY, data_en)
+    recc_build_json_representation(ES_TRAD_KEY, data_es)
+    program_finished_successfully = True
 
-        fr_text_dict.append(build_json_arbo(0, key, fr_tail_object))
-        en_text_dict.append(build_json_arbo(0, key, en_tail_object))
-        es_text_dict.append(build_json_arbo(0, key, es_tail_object))
-
-def csv_to_json():
+def build_json_file_from_csv_file():
 
     read_and_parse_csv_to_fill_data_structures()
-    #build_json_objects_for_every_lang()
+    build_json_objects_for_every_lang()
     
-    #write_processed_data_in_fr_json()
-    #write_processed_data_in_en_json()
-    #write_processed_data_in_es_json()
+    write_processed_data_in_fr_json()
+    write_processed_data_in_en_json()
+    write_processed_data_in_es_json()
+
+    end_timer = time.perf_counter()
+    print(f'Script executed in {end_timer - start_timer:0.4f} seconds! 🏎️ 💨')
     
         
 def write_processed_data_in_fr_json():
     with open("carto_static_text_fr.json", 'w') as json_file_handler:        
-        fr_text_dict.append({"language" :{
-            "code": "fr",
+        data_fr[LANG_KEY] = {
+            "code": FR_TRAD_KEY,
             "version": f'{json_file_version}'
-        }})
-        json_file_handler.write(json.dumps(fr_text_dict, indent = 1, ensure_ascii=False))
+        }
+        json_file_handler.write(json.dumps(data_fr, indent = 1, ensure_ascii=False))
+        if program_finished_successfully:
+            print(f"🎉 Successfully created and filled JSON file in {FR_TRAD_KEY}! File name: carto_static_text_fr.json")
 
 def write_processed_data_in_en_json():
     with open("carto_static_text_en.json", 'w') as json_file_handler:        
-        en_text_dict.append({"language" :{
-            "code": "en",
+        data_en[LANG_KEY] = {
+            "code": EN_TRAD_KEY,
             "version": f'{json_file_version}'
-        }})
-        json_file_handler.write(json.dumps(en_text_dict, indent = 1, ensure_ascii=False))
+        }
+        json_file_handler.write(json.dumps(data_en, indent = 1, ensure_ascii=False))
+        if program_finished_successfully:
+            print(f"🎉 Successfully created and filled JSON file in {EN_TRAD_KEY}! File name: carto_static_text_en.json")
 
 def write_processed_data_in_es_json():
     with open("carto_static_text_es.json", 'w') as json_file_handler:        
-        es_text_dict.append({"language" :{
-            "code": "es",
+        data_es[LANG_KEY] = {
+            "code": ES_TRAD_KEY,
             "version": f'{json_file_version}'
-        }})
-        json_file_handler.write(json.dumps(es_text_dict, indent = 1, ensure_ascii=False))
+        }
+        json_file_handler.write(json.dumps(data_es, indent = 1, ensure_ascii=False))
+        if program_finished_successfully:
+            print(f"🎉 Successfully created and filled JSON file in {ES_TRAD_KEY}! File name: carto_static_text_es.json")
 
-json_file_version = 1 #input("Version des fichiers json à générer\n") 
-# try:
-#     int(json_file_version)
-# except ValueError as e:
-#     json_file_version = 1
+json_file_version = input("Version des fichiers JSON à générer\n") 
+try:
+    int(json_file_version)
+except ValueError as e:
+    json_file_version = 1
 
-csv_source_file = "/Users/kerram/Desktop/Workspace/DEV/Scripts/carto_script/sample_data.csv" #input('Entrez le chemin du fichier CSV depuis lequel vous voulez récupérer les données à insérer dans les fichiers JSON:\n')
+csv_source_file = input('Entrez le chemin du fichier CSV depuis lequel vous voulez récupérer les données à insérer dans les fichiers JSON:\n') 
 
-
-csv_to_json()
-
-
+build_json_file_from_csv_file()
 
