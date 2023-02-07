@@ -9,6 +9,7 @@
 import csv
 import json
 import time
+import sys
 
 start_timer = time.perf_counter() # timer when started
 
@@ -104,7 +105,6 @@ def insert_child_json_in_final_json(initial_root, child_root, child, json_file):
          json_file[initial_root][child_root] = child
 
     if result:
-        print(f"Result: {result}")
         new_json = json_file[initial_root]
         new_initial_root = child_root
         new_child_root = [k for k in child][0]
@@ -112,7 +112,7 @@ def insert_child_json_in_final_json(initial_root, child_root, child, json_file):
             new_child = child[new_child_root]
             insert_child_json_in_final_json(new_initial_root, new_child_root, new_child, new_json)
         except TypeError as e:
-            print("Cannot go deeper")
+            pass
 
     else:
         json_file[initial_root][child_root] = child
@@ -163,6 +163,7 @@ def build_json_child_arbo(position, keys, tail_object):
 ## data structure to be processed and to easily interact with.
 ## It will split the keys by their separator and associate a traduction text to a key
 def read_and_parse_csv_to_fill_data_structures():
+    global program_finished_successfully
     try:
         with open(csv_source_file, "r") as csv_file_handler:
             csv_reader = csv_file_handler.readlines()
@@ -181,7 +182,8 @@ def read_and_parse_csv_to_fill_data_structures():
             splited_keys.pop(0)
             splited_keys.sort()
     except FileNotFoundError as e:
-        print("⚠️ Fichier introuvable verifier le chemin vers le fichier ⚠️\n")
+        print(f"⚠️  Script had problemes during its execution.\n⚠️  Reason : File not found check path \n")
+        sys.exit()
 
  
 ## Function called to create final json files for the correct lang
@@ -189,7 +191,7 @@ def build_json_objects_for_every_lang():
     recc_build_json_representation(FR_TRAD_KEY, data_fr)
     recc_build_json_representation(EN_TRAD_KEY, data_en)
     recc_build_json_representation(ES_TRAD_KEY, data_es)
-    program_finished_successfully = True
+    
 
 def build_json_file_from_csv_file():
 
@@ -210,9 +212,8 @@ def write_processed_data_in_fr_json():
             "code": FR_TRAD_KEY,
             "version": f'{json_file_version}'
         }
-        json_file_handler.write(json.dumps(data_fr, indent = 1, ensure_ascii=False))
-        if program_finished_successfully:
-            print(f"🎉 Successfully created and filled JSON file in {FR_TRAD_KEY}! File name: carto_static_text_fr.json")
+        json_file_handler.write(json.dumps(data_fr, indent = 2, ensure_ascii=False))
+        print(f"🎉 Successfully created and filled JSON file in {FR_TRAD_KEY}! File name: carto_static_text_fr.json")
 
 def write_processed_data_in_en_json():
     with open("carto_static_text_en.json", 'w') as json_file_handler:        
@@ -220,9 +221,8 @@ def write_processed_data_in_en_json():
             "code": EN_TRAD_KEY,
             "version": f'{json_file_version}'
         }
-        json_file_handler.write(json.dumps(data_en, indent = 1, ensure_ascii=False))
-        if program_finished_successfully:
-            print(f"🎉 Successfully created and filled JSON file in {EN_TRAD_KEY}! File name: carto_static_text_en.json")
+        json_file_handler.write(json.dumps(data_en, indent = 2, ensure_ascii=False))
+        print(f"🎉 Successfully created and filled JSON file in {EN_TRAD_KEY}! File name: carto_static_text_en.json")
 
 def write_processed_data_in_es_json():
     with open("carto_static_text_es.json", 'w') as json_file_handler:        
@@ -230,9 +230,8 @@ def write_processed_data_in_es_json():
             "code": ES_TRAD_KEY,
             "version": f'{json_file_version}'
         }
-        json_file_handler.write(json.dumps(data_es, indent = 1, ensure_ascii=False))
-        if program_finished_successfully:
-            print(f"🎉 Successfully created and filled JSON file in {ES_TRAD_KEY}! File name: carto_static_text_es.json")
+        json_file_handler.write(json.dumps(data_es, indent = 2, ensure_ascii=False))
+        print(f"🎉 Successfully created and filled JSON file in {ES_TRAD_KEY}! File name: carto_static_text_es.json")
 
 json_file_version = input("Version des fichiers JSON à générer\n") 
 try:
