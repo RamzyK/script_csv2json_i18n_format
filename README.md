@@ -3,12 +3,14 @@ This script can generate 3 json files in 3 languages handled (french, english,
 spanish) when taking in parameter the version number of the traduction and a path to 
 a CSV file formatted as follow:
 
-Cle;Francais;Anglais;Espangnol
-a.b.d.e;toto0;tutu0;titi0
-b.cc.dd;toto1;tutu1;titi1
-a.b.d.f;toto2;tutu2;titi2
-a;toto3;toto3;tutu3;titi3
-d.f.g;toto4;tutu4;tit4 
+|Cle    |French|English|Spanish|
+|-------|--------|-------|---------|
+|a.b.d.e|toto0   |tutu0  |titi0    |
+|b.cc.dd|toto1   |tutu1  |titi1    |
+|a.b.d.f|toto2   |tutu2  |titi2    |
+|a      |toto3   |toto3  |tutu3    |
+|d.f.g  |toto4   |tutu4  |tit4     |
+
 
 The names in the columns of the first lines is not important. What is important 
 though is that there mus be no '\n' characters in the columns 1, 2, 3 because it 
@@ -19,7 +21,7 @@ as follow:
 
 carto_static_text_fr.json:
 -------------------------
-
+```json
 {
   "a": {
     "text": "toto3",
@@ -58,11 +60,12 @@ carto_static_text_fr.json:
     "version": "5"
   }
 }
-
+```
 
 carto_static_text_en.json.json:
 ------------------------------
 
+```json
 {
   "a": {
     "text": "toto3",
@@ -101,10 +104,13 @@ carto_static_text_en.json.json:
     "version": "5"
   }
 }
+```
+}
 
 carto_static_text_es.json:
 -------------------------
 
+```json
 {
   "a": {
     "text": "tutu3",
@@ -143,5 +149,6 @@ carto_static_text_es.json:
     "version": "5"
   }
 }
+```
 
 The script handles infinite dynamic json  depth construction. 
